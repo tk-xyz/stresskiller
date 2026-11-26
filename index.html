@@ -538,7 +538,11 @@ function rebuildTopo(first){
   }
   const sizes=new Array(nc+1).fill(0);for(const v of comp.values())sizes[v]++;
   const pv=new Map();for(const tr of alive){const k=comp.get(tr);if(!pv.has(k))pv.set(k,new Set());for(const v of tr.v)pv.get(k).add(v)}
-  pieces=[];for(const [k,set] of pv){const vs=[...set];let rx=0,ry=0;for(const v of vs){rx+=v.rx;ry+=v.ry}pieces.push({id:k,vs,rcx:rx/vs.length,rcy:ry/vs.length,main:false,scale:1})}
+  const oldStuff=new Map();for(const pc of pieces)for(const v of pc.vs)oldStuff.set(v.id,pc);
+  const prevMain=pieces.find(pc=>pc.main);
+  pieces=[];for(const [k,set] of pv){const vs=[...set];let rx=0,ry=0;for(const v of vs){rx+=v.rx;ry+=v.ry}
+    let par=null;for(const v of vs){const q=oldStuff.get(v.id);if(q){par=q;break}}
+    pieces.push({id:k,vs,rcx:rx/vs.length,rcy:ry/vs.length,main:false,scale:1,stuff:par?par.stuff:1,torn:0,tornE:[]})}
   // sınır döngüleri
   const adj=new Map();for(const e of bEdges){for(const [u,w] of [[e.a,e.b],[e.b,e.a]]){if(!adj.has(u))adj.set(u,[]);adj.get(u).push(w)}}
   bLoops=[];const seen=new Set();
@@ -556,6 +560,11 @@ function rebuildTopo(first){
   const before=pieceCount;pieceCount=nc;
   for(const tr of alive)tr.main=comp.get(tr)===mainC;
   for(const pc of pieces)pc.main=pc.id===mainC;
+  const vPiece=new Map();for(const pc of pieces)for(const v of pc.vs)vPiece.set(v,pc);
+  for(const e of bEdges){if(e.orig)continue;const pc=vPiece.get(e.a);if(pc){pc.torn+=Math.hypot(e.a.rx-e.b.rx,e.a.ry-e.b.ry);pc.tornE.push(e)}}
+  if(!first&&prevMain)for(const pc of pieces){
+    if(!pc.main&&pc.stuff>.5){pc.stuff=Math.min(pc.stuff,.45);for(const e of pc.tornE.slice(0,6))addFluff((e.a.x+e.b.x)/2,(e.a.y+e.b.y)/2,2,4)}
+  }
   for(const v of bodyV){v.main=false}
   for(const tr of alive)if(tr.main)for(const v of tr.v)v.main=true;
   mainV=bodyV.filter(v=>v.main);
@@ -844,7 +853,7 @@ function step(){
   }
   for(const pc of pieces){
     const vs=pc.vs,n=vs.length;if(n<3)continue;
-    const al=pc.main?shapeK:.045;if(al<=0)continue;
+    const al=pc.k||.05;if(al<=0)continue;
     let cx=0,cy=0;for(const v of vs){cx+=v.x;cy+=v.y}cx/=n;cy/=n;
     const sc=S*pc.scale;let dot=0,crs=0;
     for(const v of vs){const px=v.x-cx,py=v.y-cy,qx=(v.rx-pc.rcx)*sc,qy=(v.ry-pc.rcy)*sc;dot+=qx*px+qy*py;crs+=qx*py-qy*px}
@@ -1198,19 +1207,27 @@ function update(dt){
   wasBurning=burning;
 
   // yaralardan pamuk sızar, gövde söner
-  let wsum=0;
+  let wsum=0,holeSum=0;for(const w of wounds)if(w.dmg>=1&&w.type!=='burn')holeSum+=w.type==='cut'?w.size*.3:w.size;
   for(const w of wounds){
     if(w.type==='burn'||w.dmg<1)continue;
     wsum+=w.size;
     if(Math.random()<dt*w.size*.025*(.4+sp*.4)){const p=restToWorld(w.x,w.y);if(p)addFluff(p.x,p.y,1,2)}
   }
-  if(Math.random()<dt*bEdges.length*.04){const e=pick(bEdges);if(e&&!e.orig)addFluff((e.a.x+e.b.x)/2,(e.a.y+e.b.y)/2,1,1.5)}
   const lost=limbs.filter(l=>l.off).length;
   const loss=ko?Math.min(.6,.3+(t-finT)*.4):clamp((wear-40)/60,0,1)*.18+Math.min(.26,wsum/520)+lost*.02+(1-triAlive().length/triTotal)*.4;
   const breath=ko?0:Math.sin(t*2.2)*.015;
   for(const c of cons){if(!c.body)continue;if(c.bend){c.k=Math.max(.02,.16*(1-loss*1.4))}else c.len=c.base*(1-loss*.22+breath)}
-  shapeK=ko?.035:clamp(.085*(1-loss*1.2),.035,.085);
-  for(const pc of pieces)pc.scale=pc.main?1-loss*.2+breath:.97;
+  for(const pc of pieces){
+    let cvx=0,cvy=0;for(const v of pc.vs){cvx+=v.x-v.px;cvy+=v.y-v.py}const spd=Math.hypot(cvx,cvy)/pc.vs.length/S;
+    const holes=pc.main?Math.min(40,holeSum*.5):0,open=pc.torn+holes;
+    if(open>0&&pc.stuff>0){
+      const leak=open/320*(.1+Math.min(spd,5)*.08)*(pc.main?1:2.2);pc.stuff=Math.max(0,pc.stuff-leak*dt);
+      if(pc.tornE.length&&Math.random()<dt*Math.min(14,open*.08)*(.3+pc.stuff)){const e=pick(pc.tornE);addFluff((e.a.x+e.b.x)/2,(e.a.y+e.b.y)/2,1,2+spd*.3)}
+    }
+    const st=pc.stuff*(pc.main&&ko?.6:1);
+    pc.k=.025+.24*st*st;
+    pc.scale=.78+.22*st+(pc.main?breath:0);
+  }
 
   // uçuş
   const flying=!held&&!pinned&&!onGround&&sp>3;
@@ -2239,7 +2256,7 @@ function frame(now){
   requestAnimationFrame(frame);
 }
 resize();makeFelt();makeSprites();build();
-window.__game={setType:k=>setType(k,true),topo:()=>({tris:triAlive().length,total:triTotal,pieces:pieceCount,verts:bodyV.length,main:mainV.length}),killLine:(x1,y1,x2,y2)=>{for(const tr of tris){if(tr.dead)continue;const [a,b,c]=tr.v;if(segX(x1,y1,x2,y2,a.x,a.y,b.x,b.y)||segX(x1,y1,x2,y2,b.x,b.y,c.x,c.y)||segX(x1,y1,x2,y2,c.x,c.y,a.x,a.y))killTri(tr,'saw')}},dbg:()=>({heat:Math.max(...pts.map(p=>p.heat)),act:act.id,tool,px:ptr.x,py:ptr.y,cx:center.x,cy:center.y}),state:()=>({wear,ko,mood,cx:center.x,cy:center.y,limbsOff:limbs.filter(l=>l.off).length,loose:pts.filter(p=>p.loose).length,wounds:wounds.map(w=>w.type+':'+w.dmg.toFixed(1)),burning,cells:cellBurning,floor:floorBurning,char:+Math.max(...cChar).toFixed(2),fuel:+Math.max(...cFuel).toFixed(2),ffuel:+Math.max(...ffuel).toFixed(2),scorch:+Math.max(...fscorch).toFixed(2),face:!!faceImg,tips:limbs.map(l=>({x:l.tip.x,y:l.tip.y})),links:limbs.map(l=>l.links.map(c=>({ax:c.a.x,ay:c.a.y,bx:c.b.x,by:c.b.y,on:c.on})))})};
+window.__game={pieces:()=>pieces.map(p=>({main:p.main,n:p.vs.length,stuff:+p.stuff.toFixed(2),k:+(p.k||0).toFixed(3)})),setType:k=>setType(k,true),topo:()=>({tris:triAlive().length,total:triTotal,pieces:pieceCount,verts:bodyV.length,main:mainV.length}),killLine:(x1,y1,x2,y2)=>{for(const tr of tris){if(tr.dead)continue;const [a,b,c]=tr.v;if(segX(x1,y1,x2,y2,a.x,a.y,b.x,b.y)||segX(x1,y1,x2,y2,b.x,b.y,c.x,c.y)||segX(x1,y1,x2,y2,c.x,c.y,a.x,a.y))killTri(tr,'saw')}},dbg:()=>({heat:Math.max(...pts.map(p=>p.heat)),act:act.id,tool,px:ptr.x,py:ptr.y,cx:center.x,cy:center.y}),state:()=>({wear,ko,mood,cx:center.x,cy:center.y,limbsOff:limbs.filter(l=>l.off).length,loose:pts.filter(p=>p.loose).length,wounds:wounds.map(w=>w.type+':'+w.dmg.toFixed(1)),burning,cells:cellBurning,floor:floorBurning,char:+Math.max(...cChar).toFixed(2),fuel:+Math.max(...cFuel).toFixed(2),ffuel:+Math.max(...ffuel).toFixed(2),scorch:+Math.max(...fscorch).toFixed(2),face:!!faceImg,tips:limbs.map(l=>({x:l.tip.x,y:l.tip.y})),links:limbs.map(l=>l.links.map(c=>({ax:c.a.x,ay:c.a.y,bx:c.b.x,by:c.b.y,on:c.on})))})};
 requestAnimationFrame(now=>{last=now;frame(now)});
 })();
 </script>
