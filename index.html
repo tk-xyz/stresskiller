@@ -143,7 +143,7 @@ button:focus-visible,.btn:focus-visible{outline:3px solid var(--plum);outline-of
 <div id="crop" hidden role="dialog" aria-modal="true" aria-labelledby="ctitle">
   <div class="card">
     <h2 id="ctitle">Yüzü yerleştir</h2>
-    <p>Fotoğrafı parmağınla ya da fareyle sürükle, iki parmakla ya da tekerlekle yakınlaştır. Yüzü ovalin içine oturt; dışı şeffaf kalır.</p>
+    <p id="cnote">Fotoğrafı parmağınla ya da fareyle sürükle, iki parmakla ya da tekerlekle yakınlaştır. Yüzü ovalin içine oturt; dışı şeffaf kalır.</p>
     <div class="cwrap"><canvas id="cc" width="600" height="600" aria-label="Yüz yerleştirme alanı"></canvas></div>
     <label class="sl" for="cz">Yakınlaştır<input type="range" id="cz" min="-1.5" max="2.5" step="0.01" value="0"></label>
     <label class="sl" for="crt">Döndür<input type="range" id="crt" min="-60" max="60" step="1" value="0"></label>
@@ -1633,8 +1633,44 @@ function autoGuess(img){
   return{x:w/2,y:h/2,h:2*ORY*Math.max(w,h)/(CW*.96)};
 }
 function applyGuess(gs){crop.cx=gs.x;crop.cy=gs.y;crop.base=(2*ORY)/gs.h;crop.z=0;crop.rot=0;$('cz').value=0;$('crt').value=0;drawCrop()}
+const MP_VER='1.2.2',MP_BASE='https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@'+MP_VER;
+const MP_MODEL='https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite';
+let mpDet=null,mpTry=null;
+function getDetector(){
+  if(window.__mpDet)return Promise.resolve(window.__mpDet);
+  if(mpDet)return Promise.resolve(mpDet);
+  if(!mpTry)mpTry=(async()=>{
+    try{
+      const V=await import(MP_BASE+'/vision_bundle.mjs');
+      const fs=await V.FilesetResolver.forVisionTasks(MP_BASE+'/wasm');
+      mpDet=await V.FaceDetector.createFromOptions(fs,{baseOptions:{modelAssetPath:MP_MODEL},runningMode:'IMAGE',minDetectionConfidence:.4});
+    }catch(e){mpDet=null}
+    return mpDet;
+  })();
+  return mpTry;
+}
+const CNOTE='Fotoğrafı parmağınla ya da fareyle sürükle, iki parmakla ya da tekerlekle yakınlaştır. Yüzü ovalin içine oturt; dışı şeffaf kalır.';
+function cnote(t){$('cnote').textContent=t}
+function detectFace(img){
+  cnote('Yüz aranıyor…');
+  Promise.race([getDetector(),new Promise(r=>setTimeout(()=>r(null),10000))]).then(det=>{
+    if(crop.img!==img)return;
+    if(!det){cnote('Yüzü otomatik bulamadım. '+CNOTE);return}
+    let res;try{res=det.detect(img)}catch(e){res=null}
+    const ds=res&&res.detections||[];
+    if(!ds.length){cnote('Fotoğrafta yüz bulamadım, elle yerleştir. '+CNOTE);return}
+    if(crop.touched){cnote('Yüzü buldum ama sen yerleştirmeye başladığın için dokunmadım.');return}
+    const best=ds.filter(d=>d.boundingBox).sort((a,b)=>b.boundingBox.width*b.boundingBox.height-a.boundingBox.width*a.boundingBox.height)[0];
+    if(!best){cnote(CNOTE);return}
+    const bb=best.boundingBox,w=img.naturalWidth||img.width,h=img.naturalHeight||img.height;
+    let rot=0;const k=best.keypoints||[];
+    if(k.length>=2){rot=-Math.atan2((k[1].y-k[0].y)*h,(k[1].x-k[0].x)*w);if(Math.abs(rot)>Math.PI/2)rot+=rot>0?-Math.PI:Math.PI;rot=clamp(rot,-1.05,1.05)}
+    applyGuess({x:bb.originX+bb.width/2,y:bb.originY+bb.height*.4,h:bb.height*1.55,rot});
+    cnote('Yüzü buldum ve ovale oturttum. Beğenmezsen kaydırıp düzelt, sonra Tamam de.');
+  });
+}
 function guessFace(img){
-  applyGuess(autoGuess(img));
+  applyGuess(autoGuess(img));detectFace(img);
   if('FaceDetector' in window){try{new FaceDetector({fastMode:true}).detect(img).then(fs=>{
     if(!fs.length||crop.touched||crop.img!==img)return;
     const b=fs.map(f=>f.boundingBox).sort((p,q)=>q.width*q.height-p.width*p.height)[0];
@@ -1666,7 +1702,7 @@ CC.addEventListener('pointerup',cEnd);CC.addEventListener('pointercancel',cEnd);
 CC.addEventListener('wheel',e=>{e.preventDefault();crop.touched=true;crop.z=clamp(crop.z-e.deltaY*.0015,-1.5,2.5);$('cz').value=crop.z;drawCrop()},{passive:false});
 $('cz').addEventListener('input',()=>{crop.touched=true;crop.z=+$('cz').value;drawCrop()});
 $('crt').addEventListener('input',()=>{crop.touched=true;crop.rot=+$('crt').value*Math.PI/180;drawCrop()});
-$('cAuto').addEventListener('click',()=>{if(crop.img){crop.touched=false;guessFace(crop.img)}});
+$('cAuto').addEventListener('click',()=>{if(crop.img){crop.touched=false;applyGuess(autoGuess(crop.img));cnote(CNOTE)}});
 $('cCancel').addEventListener('click',closeCrop);
 $('cOk').addEventListener('click',()=>{
   if(!crop.img)return;
