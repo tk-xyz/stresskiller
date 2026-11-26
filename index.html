@@ -367,6 +367,7 @@ const LINES={
   eye:['Gözüm!','Düğmem sarktı!','Gözüm düştü, biri tutsun!','Gözüm mü düştü?!'],
   ko:['Pilim bitti…','Paçavra oldum…','Beni baştan dik…','Son dileğim: yumuşatıcı.','Hâlâ buradayım… sanırım.','Beni çamaşır makinesine atın…']
 };
+const babify=s=>s.replace(/[rl]/g,'y').replace(/[RL]/g,'Y');
 const recent=[];let sayT=-9;
 function say(key,prio=1){
   const extra=TY&&TY.lines&&TY.lines[key]||[];const pool=extra.concat(LINES[key]||[]);if(!pool.length||!center)return;
@@ -375,7 +376,7 @@ function say(key,prio=1){
   if(t-sayT<.3&&prio<2)return;
   let opts=pool.filter(l=>!recent.includes(l));if(!opts.length)opts=pool;
   const text=pick(opts);recent.push(text);if(recent.length>18)recent.shift();
-  bubbles=[{text,t:0,x:center.x,y:center.y-118*S,prio,dur:1.2+text.length*.045}];sayT=t;
+  bubbles=[{text:babify(text),t:0,x:center.x,y:center.y-118*S,prio,dur:1.2+text.length*.045}];sayT=t;
 }
 
 /* ---------- kurulum ---------- */
