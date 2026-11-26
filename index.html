@@ -80,6 +80,13 @@ button:focus-visible,.btn:focus-visible{outline:3px solid var(--plum);outline-of
 #crop .row2{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:6px}
 #crop .pri,#panel .pri{background:var(--mustard)}
 #openOut{text-decoration:none;margin:0 0 12px;background:var(--mustard)}
+#sharebox{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(42,24,56,.45);z-index:6}
+#sharebox .card{background:var(--paper);border:3px solid var(--ink);border-radius:18px;box-shadow:0 5px 0 var(--ink);padding:14px 16px 16px;width:100%;max-width:400px}
+#sharebox h2{margin:0 0 4px;font-size:21px}
+#sharebox p{margin:0 0 10px;font-size:14px;font-weight:500;line-height:1.35}
+#sharebox textarea{width:100%;font:12px/1.35 ui-monospace,monospace;border:2px solid var(--ink);border-radius:10px;padding:6px 8px;resize:none;-webkit-user-select:text;user-select:text;background:#fff;color:var(--ink);margin-bottom:10px;word-break:break-all}
+#sharebox .row2{display:flex;gap:8px;justify-content:flex-end}
+#sharebox .pri{background:var(--mustard)}
 #end{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(42,24,56,.35);z-index:4}
 #end .card{background:var(--paper);border:3px solid var(--ink);border-radius:18px;box-shadow:0 5px 0 var(--ink);padding:16px 18px;width:100%;max-width:340px;text-align:center}
 #end h2{margin:0 0 4px;font-size:26px;line-height:1.15}
@@ -101,6 +108,7 @@ button:focus-visible,.btn:focus-visible{outline:3px solid var(--plum);outline-of
   </div>
   <div id="btns">
     <button id="faceBtn" aria-haspopup="dialog">Yüz</button>
+    <button id="shareBtn">Paylaş</button>
     <button id="snd" aria-label="Sesi kapat">Ses açık</button>
     <button id="rst">Baştan</button>
   </div>
@@ -140,6 +148,14 @@ button:focus-visible,.btn:focus-visible{outline:3px solid var(--plum);outline-of
     <label class="sl" for="cz">Yakınlaştır<input type="range" id="cz" min="-1.5" max="2.5" step="0.01" value="0"></label>
     <label class="sl" for="crt">Döndür<input type="range" id="crt" min="-60" max="60" step="1" value="0"></label>
     <div class="row2"><button id="cAuto">Sıfırla</button><button id="cCancel">Vazgeç</button><button id="cOk" class="pri">Tamam</button></div>
+  </div>
+</div>
+<div id="sharebox" hidden role="dialog" aria-modal="true" aria-labelledby="stitle">
+  <div class="card">
+    <h2 id="stitle">Bağlantıyı paylaş</h2>
+    <p id="snote">Bu bağlantıyı açan kişi oyunu senin koyduğun yüzle oynar.</p>
+    <textarea id="slink" readonly rows="3" aria-label="Paylaşım bağlantısı"></textarea>
+    <div class="row2"><button id="sCopy" class="pri">Kopyala</button><button id="sClose">Kapat</button></div>
   </div>
 </div>
 <div id="end" hidden role="dialog" aria-modal="true" aria-labelledby="etitle">
@@ -1555,6 +1571,7 @@ window.addEventListener('keydown',e=>{
   if(!$('crop').hidden){if(e.key==='Escape')closeCrop();return}
   if(!$('panel').hidden){if(e.key==='Escape')closePanel();return}
   if(!$('end').hidden){if(e.key==='Escape')$('end').hidden=true;return}
+  if(!$('sharebox').hidden){if(e.key==='Escape')$('sharebox').hidden=true;return}
   const i='123456'.indexOf(e.key);if(i>=0)setTool(TOOLS[i].dataset.t);
 });
 $('rst').addEventListener('click',()=>{audio();build();voice('mumble',true);say('happy',3)});
@@ -1714,7 +1731,47 @@ window.addEventListener('paste',e=>{
   if(!items.length)return;e.preventDefault();
   processFile(items[0].getAsFile(),$('panel').hidden?'a':pasteSlot);
 });
+const SHARE_BASE='https://tk-xyz.github.io/stresskiller/';
+const b64u=s=>s.replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+const ub64=s=>{s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';return s};
+function packFace(im){
+  if(!im)return '';
+  const c=document.createElement('canvas');c.width=84;c.height=98;const g=c.getContext('2d');
+  g.fillStyle='#e9d6c4';g.fillRect(0,0,84,98);
+  const iw=im.naturalWidth||im.width,ih=im.naturalHeight||im.height,sc=Math.max(84/iw,98/ih);
+  g.drawImage(im,(84-iw*sc)/2,(98-ih*sc)/2,iw*sc,ih*sc);
+  let d=c.toDataURL('image/webp',.6);
+  if(d.startsWith('data:image/webp'))return 'w'+b64u(d.split(',')[1]);
+  return 'j'+b64u(c.toDataURL('image/jpeg',.62).split(',')[1]);
+}
+const unpack=s=>s?'data:image/'+(s[0]==='w'?'webp':'jpeg')+';base64,'+ub64(s.slice(1)):null;
+function shareLink(){
+  let base=SHARE_BASE;
+  try{if(window.top===window&&/^https?:$/.test(location.protocol)&&!/claude/.test(location.hostname))base=location.origin+location.pathname}catch(e){}
+  if(!faceImg)return base;
+  return base+'#y='+packFace(faceImg)+(faceHurt?'.'+packFace(faceHurt):'');
+}
+$('shareBtn').addEventListener('click',async()=>{
+  const url=shareLink();
+  const note=faceImg?'Bu bağlantıyı açan kişi oyunu senin koyduğun yüzle oynar.':'Henüz yüz eklemedin; bağlantı Pofuduk\'un kendi yüzüyle açılır. Önce Yüz düğmesinden fotoğraf ekleyebilirsin.';
+  if(navigator.share&&matchMedia('(pointer:coarse)').matches){
+    try{await navigator.share({title:'Pofuduk Dövme Odası',text:'Bunu döv bakalım:',url});return}catch(e){if(e&&e.name==='AbortError')return}
+  }
+  $('slink').value=url;$('snote').textContent=note;$('sharebox').hidden=false;$('sCopy').focus();
+});
+$('sCopy').addEventListener('click',async()=>{
+  const ta=$('slink');ta.focus();ta.select();let ok=false;
+  try{await navigator.clipboard.writeText(ta.value);ok=true}catch(e){try{ok=document.execCommand('copy')}catch(_){}}
+  $('sCopy').textContent=ok?'Kopyalandı':'Seçili, elle kopyala';setTimeout(()=>$('sCopy').textContent='Kopyala',2200);
+});
+$('sClose').addEventListener('click',()=>{$('sharebox').hidden=true});
+function sharedFaces(){
+  const m=/[#&]y=([A-Za-z0-9_\-]+)(?:\.([A-Za-z0-9_\-]+))?/.exec(location.hash||'');
+  return m?{a:unpack(m[1]),b:unpack(m[2]||'')}:null;
+}
 (function initFaces(){
+  const sh=sharedFaces();
+  if(sh&&sh.a){Promise.all([loadImg(sh.a),sh.b?loadImg(sh.b):null]).then(([a,b])=>{faceImg=a;faceHurt=b;drawThumbs();toast('Sana gönderilen yüzle açıldı. Kendi yüzünü Yüz düğmesinden koyabilirsin.')}).catch(()=>toast('Bağlantıdaki yüz açılamadı.'));return}
   let saved=null;try{saved=JSON.parse(localStorage.getItem('pofuduk-yuz')||'null')}catch(e){}
   const src=saved&&typeof saved==='object'?saved:{a:FACE_A,b:FACE_B};
   Promise.all([useSrc('a',src.a),useSrc('b',src.b)]).catch(()=>Promise.all([useSrc('a',FACE_A),useSrc('b',FACE_B)]));
