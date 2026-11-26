@@ -36,7 +36,7 @@ canvas#c{position:absolute;inset:0;width:100%;height:100%;display:block;touch-ac
 canvas#c.nocur{cursor:none}
 #hud{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:10px 12px;pointer-events:none}
 #meter{background:var(--paper);border:2.5px solid var(--ink);border-radius:14px;padding:5px 11px 7px;min-width:132px;max-width:200px;flex:1;box-shadow:0 3px 0 var(--ink)}
-#lbl{display:flex;justify-content:space-between;font-weight:700;font-size:14px;line-height:1.3}
+#lbl{display:flex;justify-content:space-between;gap:6px;font-weight:700;font-size:14px;line-height:1.3}
 #pct{font-variant-numeric:tabular-nums}
 #bar{height:10px;border-radius:6px;background:#e7dccb;overflow:hidden;margin:3px 0 4px}
 #fill{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--mustard),var(--danger));border-radius:6px;transition:width .2s}
@@ -236,7 +236,7 @@ const FINE=window.matchMedia&&matchMedia('(pointer:fine)').matches;
 
 let W=0,H=0,DPR=1,FLOOR=0,GROUND=0,S=1,bg=null,felt=null;
 let pts=[],cons=[],limbs=[],center=null;
-let tris=[],bodyV=[],mainV=[],bEdges=[],topV=null,botV=null,faceTri=null,topoDirty=false,pieceCount=1,triTotal=1,lastRip=-9,splitT=-9,lastTriKill=-9;
+let pieces=[],bLoops=[],shapeK=1,tris=[],bodyV=[],mainV=[],bEdges=[],topV=null,botV=null,faceTri=null,topoDirty=false,pieceCount=1,triTotal=1,lastRip=-9,splitT=-9,lastTriKill=-9;
 let TEX=null,tctx=null,TS=2;const TMINX=-72,TMINY=-80,TW=144,TH=180;
 let TY=null,TYKEY='pofuduk';
 let fluff=[],fx=[],flames=[],smoke=[],drops=[],puddles=[],wounds=[],dirt=[],bubbles=[];
@@ -537,10 +537,25 @@ function rebuildTopo(first){
     while(st.length){const a=st.pop();for(const k of [0,1,2]){const kk=key(a.v[k],a.v[(k+1)%3]),e=em.get(kk);for(const b of e.tris)if(!comp.has(b)){comp.set(b,nc);st.push(b)}}}
   }
   const sizes=new Array(nc+1).fill(0);for(const v of comp.values())sizes[v]++;
+  const pv=new Map();for(const tr of alive){const k=comp.get(tr);if(!pv.has(k))pv.set(k,new Set());for(const v of tr.v)pv.get(k).add(v)}
+  pieces=[];for(const [k,set] of pv){const vs=[...set];let rx=0,ry=0;for(const v of vs){rx+=v.rx;ry+=v.ry}pieces.push({id:k,vs,rcx:rx/vs.length,rcy:ry/vs.length,main:false,scale:1})}
+  // sınır döngüleri
+  const adj=new Map();for(const e of bEdges){for(const [u,w] of [[e.a,e.b],[e.b,e.a]]){if(!adj.has(u))adj.set(u,[]);adj.get(u).push(w)}}
+  bLoops=[];const seen=new Set();
+  for(const e of bEdges){
+    const k0=e.a.id+'>'+e.b.id;if(seen.has(k0))continue;
+    const loop=[e.a];let prev=e.a,cur=e.b,guard=0;seen.add(k0);seen.add(e.b.id+'>'+e.a.id);
+    while(cur!==e.a&&guard++<500){
+      loop.push(cur);const nb=(adj.get(cur)||[]).filter(w=>w!==prev&&!seen.has(cur.id+'>'+w.id));
+      if(!nb.length)break;const nx=nb[0];seen.add(cur.id+'>'+nx.id);seen.add(nx.id+'>'+cur.id);prev=cur;cur=nx;
+    }
+    if(loop.length>2)bLoops.push(loop);
+  }
   let mainC=faceTri&&!faceTri.dead?comp.get(faceTri):0;
   if(!mainC||sizes[mainC]<4){let bs=0;for(let k=1;k<=nc;k++)if(sizes[k]>bs){bs=sizes[k];mainC=k}}
   const before=pieceCount;pieceCount=nc;
   for(const tr of alive)tr.main=comp.get(tr)===mainC;
+  for(const pc of pieces)pc.main=pc.id===mainC;
   for(const v of bodyV){v.main=false}
   for(const tr of alive)if(tr.main)for(const v of tr.v)v.main=true;
   mainV=bodyV.filter(v=>v.main);
@@ -826,6 +841,15 @@ function step(){
       const f=(d-c.len)/d*c.k/ws;
       a.x+=dx*f*wa;a.y+=dy*f*wa;b.x-=dx*f*wb;b.y-=dy*f*wb;
     }
+  }
+  for(const pc of pieces){
+    const vs=pc.vs,n=vs.length;if(n<3)continue;
+    const al=pc.main?shapeK:.045;if(al<=0)continue;
+    let cx=0,cy=0;for(const v of vs){cx+=v.x;cy+=v.y}cx/=n;cy/=n;
+    const sc=S*pc.scale;let dot=0,crs=0;
+    for(const v of vs){const px=v.x-cx,py=v.y-cy,qx=(v.rx-pc.rcx)*sc,qy=(v.ry-pc.rcy)*sc;dot+=qx*px+qy*py;crs+=qx*py-qy*px}
+    const th=Math.atan2(crs,dot),c=Math.cos(th),s2=Math.sin(th);
+    for(const v of vs){if(fixed(v))continue;const qx=(v.rx-pc.rcx)*sc,qy=(v.ry-pc.rcy)*sc;v.x+=(cx+qx*c-qy*s2-v.x)*al;v.y+=(cy+qx*s2+qy*c-v.y)*al}
   }
   for(const p of pts){
     if(fixed(p)){p.ground=0;continue}
@@ -1185,6 +1209,8 @@ function update(dt){
   const loss=ko?Math.min(.6,.3+(t-finT)*.4):clamp((wear-40)/60,0,1)*.18+Math.min(.26,wsum/520)+lost*.02+(1-triAlive().length/triTotal)*.4;
   const breath=ko?0:Math.sin(t*2.2)*.015;
   for(const c of cons){if(!c.body)continue;if(c.bend){c.k=Math.max(.02,.16*(1-loss*1.4))}else c.len=c.base*(1-loss*.22+breath)}
+  shapeK=ko?.035:clamp(.085*(1-loss*1.2),.035,.085);
+  for(const pc of pieces)pc.scale=pc.main?1-loss*.2+breath:.97;
 
   // uçuş
   const flying=!held&&!pinned&&!onGround&&sp>3;
@@ -1619,9 +1645,13 @@ function drawPlush(){
   for(const L of limbs)drawLimb(L,true);
   renderTex(a);
   ctx.lineCap='round';ctx.lineJoin='round';
-  ctx.beginPath();for(const e of bEdges){ctx.moveTo(e.a.x,e.a.y);ctx.lineTo(e.b.x,e.b.y)}
-  ctx.strokeStyle=COL.dark;ctx.lineWidth=12*S;ctx.stroke();
-  ctx.strokeStyle=COL.body;ctx.lineWidth=9*S;ctx.stroke();
+  ctx.beginPath();
+  for(const lp of bLoops){
+    const n=lp.length,m=(i)=>{const a=lp[(i+n)%n],b=lp[(i+1+n)%n];return[(a.x+b.x)/2,(a.y+b.y)/2]};
+    ctx.moveTo(...m(-1));for(let i=0;i<n;i++){const p=lp[i];ctx.quadraticCurveTo(p.x,p.y,...m(i))}ctx.closePath();
+  }
+  ctx.strokeStyle=COL.dark;ctx.lineWidth=13*S;ctx.stroke();
+  ctx.strokeStyle=COL.body;ctx.lineWidth=10*S;ctx.stroke();
   for(const e of bEdges){const c=e.cell>=0?cChar[e.cell]:0;if(c>.05){ctx.strokeStyle='rgba(25,14,10,'+Math.min(.9,c*.8)+')';ctx.beginPath();ctx.moveTo(e.a.x,e.a.y);ctx.lineTo(e.b.x,e.b.y);ctx.stroke()}}
   for(const tr of tris)if(!tr.dead)drawTri(tr);
   for(let pass=0;pass<2;pass++){
