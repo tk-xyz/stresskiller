@@ -323,39 +323,49 @@ const buzz=ms=>{try{navigator.vibrate&&navigator.vibrate(ms)}catch(e){}};
 
 /* ---------- sözler ---------- */
 const LINES={
-  hit:['Mıp!','Öğk!','Ayy!','Hınk!','Niye ama?!','Burnum! Burnum yok ama acıdı.','Ben sana ne yaptım?','Yavaş, dikişliyim ben!','Pamuğum yer değiştirdi!','Oha!','Bu yumruk muydu, sevgi mi?','Hissettim onu!','İçimden pof diye ses geldi.'],
-  wall:['Duvar nereden çıktı?!','Duvar beni sevmiyor.','Bu duvar sert ya!','Duvar kağıdına yapıştım!','Duvarla tanıştık. İyi biri değil.'],
-  floor:['Parke soğukmuş.','Yer çok yakın…','Toz yuttum.','Düştüm ama kalkmıcam.','Yere çakıldım, bayrak dikin.'],
-  ceil:['Tavana dokundum!','Orada örümcek var!'],
-  fly:['Yaaaa!','Uçuyoom!','Kanadım yok benim!','İndiiir beniii!','Pilot değilim ben!','Bu sefer uçarım sandım!','Viii… yani yardım!'],
-  grab:['Nereye?!','Bırak beni!','Gıdıklanıyom!','Sev ama sıkma!','Bu kucak mı, rehine mi?','Ayaklarım yere basmıyo!','Sallama, midem bulandı. Midem yok ama.'],
-  strain:['Çekme!','Kopucaam!','Esniyoom!','Dikiş dikiş ayrılıyom!','Ben lastik değilim!','Uzadım, istemiyom!'],
-  ear:['Kulağım! Artık seni duymam, iyi oldu.','Kulağımı geri ver!','Tek kulakla da yakışıklıyım.'],
-  arm:['Kolum gitti! Nasıl el sallıcam?','Kolum! O benim favori kolumdu!','Tek kolla sarılamam ki!'],
-  leg:['Bacağım! Topal peluş oldum!','Zıplamam zorlaştı şimdi.','Bacağımı kim aldı?!'],
-  wound:['Pamuğum akıyor!','Bir delik oldum!','Dolgu kaybı alarmı!','İçim dışıma çıktı!','Terzi çağırın!','Pamuk pamuk dağılıyom!','Bu yırtık dikilmez artık.'],
-  pin:['Batıyo!','İğne mi o?!','Böcek koleksiyonu muyum ben?!','Asılı kaldım!','Tutturma beni!','Kıpırdayamıyom!','Raptiye değil bu, mızrak!'],
-  hammer:['Kafamda kuşlar!','Çekiç?! Ciddi misin?','Ben çivi değilim!','Basıklaştım!','İçimden tok diye ses geldi.','Dank! Aklım gitti.','Yassı peluş moda mı?'],
-  saw:['Testere?! Abi ben pamuktan ibaretim!','Vızzz yapma!','Beni dilimleme!','Ben ekmek değilim!','Kesik kesik oldum!','Marangoz musun nesin?!'],
-  fire:['Yanıyoom!','Su getirin!','Sıcak sıcak sıcak!','Tüylerim kavruluyo!','Polyester yanar mı ya?!','Yuvarlan diyolar, yuvarlanıyom!','İtfaiyeee!'],
-  burnhole:['Kömür oldum!','İçimden duman çıkıyo!','Kokum değişti.'],
-  lighter:['O çakmak ne için?','Çakmağı indir!','Ateşle oynanmaz!','Bak ben çok yanıcıyım ha.'],
-  soak:['Bu koku ne?','Benzin mi o?! Şaka di mi?','Islandım… ve kokuyom.','Sakın çakmak yaklaştırma.','Bu hiç iyi fikir değil.','Pikniğe mi gidiyoz?'],
-  gasfire:['İşte bundan korkuyodum!','FVUUUM!','Kaşlarım gitti! Kaşım yoktu zaten.','Mangal oldum!'],
-  smoke:['Öhö öhö…','Füme peluş oldum.','Söndüm galiba.','Bi kova su iyi olurdu.'],
-  puddle:['Yer de yanıyo!','Lav mı bu?!','Ayaklarım!'],
-  dizzy:['Fır fır…','Dönüyo…','Kaç tane sen var?','Dünya mı dönüyo, ben mi?','Yıldızları saydım, yedi.'],
-  happy:['Mıp mıp?','Selam!','Oynayalım mı? Yumuşak oynayalım.','La la la…','Bugün kimse dövmesin beni.','Sarılmak ister misin?'],
-  meh:['Hmf.','Yavaş ol bundan sonra.','Bi çay iyi gelirdi.','Sırtım tutuldu.','Neyse, geçti… geçti mi?'],
-  sulk:['Küstüm.','Hıh.','Konuşmuyorum.','Annemi arıcam. Annem yok ama.','Seni yorumlarda şikayet edicem.','Bak hâlâ küsüm.'],
-  missing:['Bir şeyim eksik gibi…','Parçalarım nerde?','Hâlâ yakışıklıyım ama di mi?','Eksik ama sevimli.'],
-  leaking:['Pamuğum sızıyo…','Bana bi yama lazım.','Yerde benden parçalar var.'],
-  soaked:['Hâlâ benzin kokuyom.','Kimse çakmak çakmasın lütfen.'],
-  charred:['Füme oldum.','Biraz kızardım.','Mangal kokuyom.'],
-  eye:['Gözüm!','Düğmem sarktı!','Gözüm düştü, biri tutsun!'],
-  tent:['Kolumu kestin! Neyse, beş tane daha var… vardı.','Dokunaçım!','Bir kolum eksik, saymaya üşendim.'],
-  split:['İkiye bölündüm!','Yarım kaldım!','Bir parçam uçtu!','Hangisi ben? Hepsi mi?','Parçalarımı toplayın!'],
-  ko:['Pilim bitti…','Paçavra oldum…','Beni baştan dik…','Son dileğim: yumuşatıcı.','Hâlâ buradayım… sanırım.']
+  hit:['Mıp!','Öğk!','Ayy!','Hınk!','Acır ki!','Acıdı ama!','Niye ama?!','Ben sana ne yaptım?','Yavaş, dikişliyim ben!','Pamuğum yer değiştirdi!','Oha!','Bu yumruk muydu, sevgi mi?','Hissettim onu!','İçimden pof diye ses geldi.','Morardım mı? Bak bi.','Tam yerine geldi!','Peluşa vurulur mu ya?','Annem görse ne der?'],
+  hit_head:['Kafam!','Yüzüme olmaz!','Gözüm! Gözüm gitti mi?','Kafama vurma, zaten pamuk dolu!','Beynim sallandı. Beynim var mıydı?','Suratıma niye?!','Yüzüm yamuldu mu?'],
+  hit_belly:['Göbeğim!','Karnıma vurma, pamuk dolu!','Midem! Midem yok ama yine de!','Göbekten olmaz, gıdıklanıyom!','Karnım içine göçtü!','Orası en yumuşak yerim!'],
+  wall:['Duvar nereden çıktı?!','Duvar beni sevmiyor.','Bu duvar sert ya!','Duvar kağıdına yapıştım!','Duvarla tanıştık. İyi biri değil.','Duvara mı attın beni?!','Kafamı duvara vurdum, düşünmek için değil.'],
+  floor:['Parke soğukmuş.','Yer çok yakın…','Toz yuttum.','Düştüm ama kalkmıcam.','Yere çakıldım, bayrak dikin.','Popom! Popom acıdı!','Yer beni çekiyo!','Burnumun üstüne düştüm. Burnum yok ama.'],
+  ceil:['Tavana dokundum!','Orada örümcek var!','Tavanı da gördüm, yeter.'],
+  fly:['Yaaaa!','Uçuyoom!','Kanadım yok benim!','İndiiir beniii!','Pilot değilim ben!','Bu sefer uçarım sandım!','Viii… yani yardım!','Yer çekimi beni bekle!','Uçuyom ama inmeyi bilmiyom!','Paraşütüm yok!'],
+  grab:['Nereye?!','Bırak beni!','Gıdıklanıyom!','Sev ama sıkma!','Bu kucak mı, rehine mi?','Ayaklarım yere basmıyo!','Sallama, midem bulandı. Midem yok ama.','Yavaş tut!','Beni nereye götürüyosun?','Sıkma, pamuğum kayıyo!'],
+  grab_arm:['Kolumdan çekme!','Kolum! Kolum kopacak!','Kolumu bırak, el sıkışırız!','Kolumdan tutulmaz, ayıp!'],
+  grab_leg:['Bacağımı bırak!','Ters çevirme beni!','Bacağımdan sallama, başım dönüyo!','Bacağım uzadı sanki!'],
+  grab_ear:['Kulağımdan tutulmaz!','Kulağım! Kulağım uzuyo!','Kulağımı çekme, okulda mıyız?','Ayy kulağım, kopacak!'],
+  grab_tent:['Dokunaçımı bırak!','Vantuzlarım yapışır ha!','Kolumu düğüm yapma!'],
+  strain:['Çekme!','Kopucaam!','Esniyoom!','Dikiş dikiş ayrılıyom!','Ben lastik değilim!','Uzadım, istemiyom!','Uzama sınırım bu!','Çekme, yırtılıcam!','Dikişlerim patlıyo!','İplik sesi geliyo, iyi değil!'],
+  ear:['Kulağım mı koptu?!','Kulağım! Artık seni duymam, iyi oldu.','Kulağımı geri ver!','Tek kulakla da yakışıklıyım.','Ne dedin? Duyamadım. Kulağım yok.','Kulağımı geri ver, küpe takıcaktım!','Acır ki! Kulak bu!'],
+  arm:['Kolum mu koptu?!','Kolum gitti! Nasıl el sallıcam?','Kolum! O benim favori kolumdu!','Tek kolla sarılamam ki!','Kolum nerde? Az önce burdaydı!','Acır ki! Kol bu, kol!','Bu kol kiralık mıydı?','Kolumu yerden biri alsın!'],
+  leg:['Bacağım mı koptu?!','Bacağım! Topal peluş oldum!','Zıplamam zorlaştı şimdi.','Bacağımı kim aldı?!','Şimdi nasıl kaçıcam?','Tek ayakla zıplıycam artık.','Acır ki ama! Bacak bu!'],
+  tent:['Dokunaçım mı koptu?!','Kolumu kestin! Neyse, beş tane daha var… vardı.','Dokunaçım!','Bir kolum eksik, saymaya üşendim.','Acır ki! Vantuzlu kolumdu!'],
+  split:['İkiye bölündüm!','Yarım kaldım!','Bir parçam uçtu!','Hangisi ben? Hepsi mi?','Parçalarımı toplayın!','Belimden ayrıldım!','Alt yarım nereye gidiyo?!','Ben yarım peluş değilim, tam peluşum! …dum.'],
+  wound:['Pamuğum akıyor!','Bir delik oldum!','Dolgu kaybı alarmı!','İçim dışıma çıktı!','Terzi çağırın!','Pamuk pamuk dağılıyom!','Bu yırtık dikilmez artık.','Pamuğum mu akıyo?!','Bu delik nerden çıktı?','İçim döküldü, toplasana!'],
+  pin:['Batıyo!','İğne mi o?!','Böcek koleksiyonu muyum ben?!','Asılı kaldım!','Tutturma beni!','Kıpırdayamıyom!','Raptiye değil bu, mızrak!','Acır ki! İğne bu!','Kelebek miyim ben?!','Pano değilim!'],
+  hammer:['Kafamda kuşlar!','Çekiç?! Ciddi misin?','Ben çivi değilim!','Basıklaştım!','İçimden tok diye ses geldi.','Dank! Aklım gitti.','Yassı peluş moda mı?','Kafam düzleşti!','Çivi çakmaya mı geldin?','Tak tak, kim o? Çekiç!'],
+  saw:['Testere?! Abi ben pamuktan ibaretim!','Vızzz yapma!','Beni dilimleme!','Ben ekmek değilim!','Kesik kesik oldum!','Marangoz musun nesin?!','Kesme! Kesme!','Beni ikiye bölersen iki kere ağlarım!','Testere dişleri gıdıklıyo… şaka, acıyo!'],
+  fire:['Yanıyoom!','Su getirin!','Sıcak sıcak sıcak!','Tüylerim kavruluyo!','Polyester yanar mı ya?!','Yuvarlan diyolar, yuvarlanıyom!','İtfaiyeee!','Yangın var! Hem de bende!','Söndürün beni!','Acır ki! Bu yanık acır!'],
+  burnhole:['Kömür oldum!','İçimden duman çıkıyo!','Kokum değişti.','Yanıp delindim!','Orası kömür oldu, dokunma.'],
+  lighter:['O çakmak ne için?','Çakmağı indir!','Ateşle oynanmaz!','Bak ben çok yanıcıyım ha.','Mum mu yakıcaksın? Lütfen mum de.'],
+  tool_hammer:['O çekiç bana mı?','Çekiçle konuşmuyoduk hani?','Çekici indir, konuşalım.'],
+  tool_saw:['O testere ne öyle?!','Testereyle şaka olmaz!','Marangozluk mu öğreniyosun? Bende mi?'],
+  tool_gas:['O bidon ne?','Benzin mi o? Arabam yok ki!','O kokuyu buradan alıyom.'],
+  soak:['Bu koku ne?','Benzin mi o?! Şaka di mi?','Islandım… ve kokuyom.','Sakın çakmak yaklaştırma.','Bu hiç iyi fikir değil.','Pikniğe mi gidiyoz?','Islak peluş yanmaz di mi? Dİ Mİ?'],
+  gasfire:['İşte bundan korkuyodum!','FVUUUM!','Kaşlarım gitti! Kaşım yoktu zaten.','Mangal oldum!','Benzinden sonra çakmak, beklenen son.'],
+  smoke:['Öhö öhö…','Füme peluş oldum.','Söndüm galiba.','Bi kova su iyi olurdu.','Hâlâ tütüyom.'],
+  puddle:['Yer de yanıyo!','Lav mı bu?!','Ayaklarım!','Alevler yerde koşuyo!'],
+  dizzy:['Fır fır…','Dönüyo…','Kaç tane sen var?','Dünya mı dönüyo, ben mi?','Yıldızları saydım, yedi.','Başım dönüyo, dur biraz.'],
+  happy:['Mıp mıp?','Selam!','Oynayalım mı? Yumuşak oynayalım.','La la la…','Bugün kimse dövmesin beni.','Sarılmak ister misin?','Sakin bi gün geçirelim mi?','Beni seviyosun di mi?'],
+  meh:['Hmf.','Yavaş ol bundan sonra.','Bi çay iyi gelirdi.','Sırtım tutuldu.','Neyse, geçti… geçti mi?','Bir mola verelim mi?','Her yerim sızlıyo.'],
+  sulk:['Küstüm.','Hıh.','Konuşmuyorum.','Annemi arıcam. Annem yok ama.','Seni yorumlarda şikayet edicem.','Bak hâlâ küsüm.','Bana bakma.','Özür dilersen düşünürüm.'],
+  missing:['Bir şeyim eksik gibi…','Parçalarım nerde?','Hâlâ yakışıklıyım ama di mi?','Eksik ama sevimli.','Parçalarım yerde, ben burdayım.'],
+  naked:['Kollarım da yok bacaklarım da… patates oldum.','Artık sadece bir yastığım.','Uzuvsuz peluş, yeni moda.'],
+  leaking:['Pamuğum sızıyo…','Bana bi yama lazım.','Yerde benden parçalar var.','Her adımda pamuk bırakıyom.'],
+  soaked:['Hâlâ benzin kokuyom.','Kimse çakmak çakmasın lütfen.','Benzin istasyonu gibi kokuyom.'],
+  charred:['Füme oldum.','Biraz kızardım.','Mangal kokuyom.','Yanık kokusu benden mi geliyo?'],
+  eye:['Gözüm!','Düğmem sarktı!','Gözüm düştü, biri tutsun!','Gözüm mü düştü?!'],
+  ko:['Pilim bitti…','Paçavra oldum…','Beni baştan dik…','Son dileğim: yumuşatıcı.','Hâlâ buradayım… sanırım.','Beni çamaşır makinesine atın…']
 };
 const recent=[];let sayT=-9;
 function say(key,prio=1){
@@ -852,6 +862,7 @@ function onImpact(){
     buzz(n>10?35:15);
   }
 }
+function zoneKey(x,y){const l=toRest(x,y);return l.y<-5?'hit_head':l.y>20?'hit_belly':'hit'}
 function nearest(x,y,rad){
   let best=null,bd=rad;
   for(const p of pts){const d=Math.hypot(p.x-x,p.y-y)-p.r*.5;if(d<bd){bd=d;best=p}}
@@ -876,7 +887,7 @@ function punch(x,y){
   if(inB||(np&&!np.limb)){damageAt(x,y,.45);addDent(x,y,16);addStain(x,y,.035)}else if(np&&np.limb&&!np.loose)linkHit(np,.18);
   lintAt(x,y,3);
   addWear(1.1);painT=Math.max(painT,.5);shook=false;calmT=0;
-  if(!ko){voice(Math.random()<.5?'grunt':'yelp');if(Math.random()<.8)say('hit')}
+  if(!ko){voice(Math.random()<.5?'grunt':'yelp');if(Math.random()<.8)say(inB?zoneKey(x,y):'hit')}
 }
 function hammer(x,y){
   hammerHit=1;
@@ -898,7 +909,7 @@ function hammer(x,y){
   addWear(2.4);painT=.9;shook=false;calmT=0;
   const l=toRest(x,y);
   if(inB&&l.y<-5&&!ko){dizzyT=2.6;spin=0}
-  if(!ko){voice('squeal',true);say('hammer',2)}
+  if(!ko){voice('squeal',true);say(inB&&Math.random()<.4?zoneKey(x,y):'hammer',2)}
 }
 function sawMove(x,y){
   const ax=act.x,ay=act.y,len=Math.hypot(x-ax,y-ay);act.x=x;act.y=y;
@@ -1100,7 +1111,8 @@ function fireSystem(dt){
 function idleKey(){
   if(ko)return Math.random()<.4?'ko':null;
   const opts=[];
-  if(limbs.some(l=>l.chain.some(p=>p.loose))||pieceCount>1)opts.push('missing');
+  if(limbs.every(l=>l.off))opts.push('naked');
+  else if(limbs.some(l=>l.chain.some(p=>p.loose))||pieceCount>1)opts.push('missing');
   if(wounds.some(w=>w.dmg>=1&&w.type!=='burn'))opts.push('leaking');
   if(cList.some(i=>cFuel[i]>.2))opts.push('soaked');
   if(cList.some(i=>cChar[i]>.4)||wounds.some(w=>w.type==='burn'&&w.dmg>.8))opts.push('charred');
@@ -1781,7 +1793,7 @@ cv.addEventListener('pointerdown',e=>{
       cv.style.cursor='grabbing';
     }
     grabs.set(e.pointerId,{p,ps:ps.map(q=>({p:q,ox:q.x-x,oy:q.y-y})),x,y,t0:performance.now(),moved:0});
-    if(p&&!p.loose&&!ko&&Math.random()<.5)voice('hup');
+    if(p&&!p.loose&&!ko){if(p.limb)say('grab_'+p.limb.name,2);if(Math.random()<.5)voice('hup')}
     return;
   }
   if(tool==='hammer'){hammer(x,y);return}
@@ -1812,14 +1824,16 @@ function setTool(name){
   for(const b of TOOLS)b.classList.toggle('on',b.dataset.t===name);
   cv.classList.toggle('nocur',name!=='hand'&&FINE);
 }
-for(const b of TOOLS)b.addEventListener('click',()=>{audio();setTool(b.dataset.t)});
+let toolT=-9;
+function toolWarn(n){const k={hammer:'tool_hammer',saw:'tool_saw',gas:'tool_gas',fire:'lighter'}[n];if(k&&!ko&&center&&t-toolT>6){toolT=t;say(k,2);voice('whimper')}}
+for(const b of TOOLS)b.addEventListener('click',()=>{audio();setTool(b.dataset.t);toolWarn(b.dataset.t)});
 window.addEventListener('keydown',e=>{
   if(!$('crop').hidden){if(e.key==='Escape')closeCrop();return}
   if(!$('panel').hidden){if(e.key==='Escape')closePanel();return}
   if(!$('end').hidden){if(e.key==='Escape')$('end').hidden=true;return}
   if(!$('sharebox').hidden){if(e.key==='Escape')$('sharebox').hidden=true;return}
   if(!$('typebox').hidden){if(e.key==='Escape')$('typebox').hidden=true;return}
-  const i='123456'.indexOf(e.key);if(i>=0)setTool(TOOLS[i].dataset.t);
+  const i='123456'.indexOf(e.key);if(i>=0){setTool(TOOLS[i].dataset.t);toolWarn(TOOLS[i].dataset.t)}
 });
 $('rst').addEventListener('click',()=>{audio();build();voice('mumble',true);say('happy',3)});
 $('snd').addEventListener('click',()=>{
