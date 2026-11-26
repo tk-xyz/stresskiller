@@ -70,6 +70,7 @@ button:focus-visible,.btn:focus-visible{outline:3px solid var(--plum);outline-of
 #panel .slot.drag{background:#f6ecd2;border-color:var(--ink)}
 #panel .slot b{font-size:14px}
 #panel canvas{width:82px;height:96px;border-radius:50%;border:3px solid var(--ink);background:#eadff2}
+#panel #autoSadBtn{font-size:12px;min-height:32px;padding:3px 8px}
 #panel .slot .btn{font-size:13px;min-height:36px;padding:4px 10px}
 #panel .row2{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
 #panel .small{font-size:13px;color:#5a4868;margin-bottom:12px}
@@ -147,10 +148,10 @@ button:focus-visible,.btn:focus-visible{outline:3px solid var(--plum);outline-of
 <div id="panel" hidden role="dialog" aria-modal="true" aria-labelledby="ptitle">
   <div class="card">
     <h2 id="ptitle">Yüz fotoğrafları</h2>
-    <p>Normal yüz rahatken, üzgün yüz canı yanınca görünür.</p>
+    <p>Normal yüz rahatken, üzgün yüz canı yanınca görünür. Sadece normal yüzü koyarsan ağlayan hâli otomatik hazırlanır.</p>
     <div class="slots">
       <div class="slot" data-slot="a"><b>Normal</b><label class="pick" for="fileA"><canvas id="thA" width="164" height="192"></canvas></label><label class="btn" for="fileA" tabindex="0">Fotoğraf seç</label><div class="paste" contenteditable="true" data-slot="a" aria-label="Normal yüz için fotoğraf yapıştır">Buraya yapıştır</div></div>
-      <div class="slot" data-slot="b"><b>Üzgün</b><label class="pick" for="fileB"><canvas id="thB" width="164" height="192"></canvas></label><label class="btn" for="fileB" tabindex="0">Fotoğraf seç</label><div class="paste" contenteditable="true" data-slot="b" aria-label="Üzgün yüz için fotoğraf yapıştır">Buraya yapıştır</div></div>
+      <div class="slot" data-slot="b"><b>Üzgün</b><label class="pick" for="fileB"><canvas id="thB" width="164" height="192"></canvas></label><label class="btn" for="fileB" tabindex="0">Fotoğraf seç</label><button id="autoSadBtn" class="btn" type="button">Otomatik ağlat</button><div class="paste" contenteditable="true" data-slot="b" aria-label="Üzgün yüz için fotoğraf yapıştır">Buraya yapıştır</div></div>
     </div>
     <p id="pmsg" class="small">Fotoğrafa ya da düğmeye bas. Seçici açılmazsa fotoğrafı kopyalayıp "Buraya yapıştır" kutusuna yapıştır (telefonda kutuya basılı tut, Yapıştır) ya da kutunun üstüne sürükle.</p>
     <a id="openOut" class="btn" hidden href="https://claude.ai/artifact/UDxtVgRtg6oNBz84cXrVq1" target="_blank" rel="noopener">Oyunu tarayıcıda aç</a>
@@ -164,7 +165,7 @@ button:focus-visible,.btn:focus-visible{outline:3px solid var(--plum);outline-of
 <div id="crop" hidden role="dialog" aria-modal="true" aria-labelledby="ctitle">
   <div class="card">
     <h2 id="ctitle">Yüzü yerleştir</h2>
-    <p id="cnote">Fotoğrafı parmağınla ya da fareyle sürükle, iki parmakla ya da tekerlekle yakınlaştır. Yüzü ovalin içine oturt; dışı şeffaf kalır.</p>
+    <p id="cnote">Fotoğrafı parmağınla ya da fareyle sürükle, iki parmakla ya da tekerlekle yakınlaştır. Gözleri ve ağzı silik işaretlere getir; ovalin dışı şeffaf kalır.</p>
     <div class="cwrap"><canvas id="cc" width="600" height="600" aria-label="Yüz yerleştirme alanı"></canvas></div>
     <label class="sl" for="cz">Yakınlaştır<input type="range" id="cz" min="-1.5" max="2.5" step="0.01" value="0"></label>
     <label class="sl" for="crt">Döndür<input type="range" id="crt" min="-60" max="60" step="1" value="0"></label>
@@ -1874,6 +1875,72 @@ function drawThumbs(){
     else{g.fillStyle='#8e5bb5';g.fillRect(0,0,c.width,c.height);g.fillStyle='#fffaf2';g.font='700 26px "Baloo 2",sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(id==='thA'&&!faceHurt?'Pofuduk':'Boş',c.width/2,c.height/2)}
   }
 }
+const LM_MODEL='https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task';
+let lmTry=null;
+function getLandmarker(){
+  if(window.__mpLm)return Promise.resolve(window.__mpLm);
+  if(!lmTry)lmTry=(async()=>{try{
+    const V=await import(MP_BASE+'/vision_bundle.mjs');const fs=await V.FilesetResolver.forVisionTasks(MP_BASE+'/wasm');
+    return await V.FaceLandmarker.createFromOptions(fs,{baseOptions:{modelAssetPath:LM_MODEL},runningMode:'IMAGE',numFaces:1});
+  }catch(e){return null}})();
+  return lmTry;
+}
+async function sadKeys(src,w,h){
+  let L=null;
+  try{const lm=await Promise.race([getLandmarker(),new Promise(r=>setTimeout(()=>r(null),9000))]);if(lm){const r=lm.detect(src);L=r&&r.faceLandmarks&&r.faceLandmarks[0]}}catch(e){L=null}
+  if(L&&L.length>400){
+    const P=i=>({x:L[i].x*w,y:L[i].y*h});
+    return{ml:P(61),mr:P(291),ul:P(13),ll:P(14),bil:P(55),bir:P(285),bol:P(46),bor:P(276),lidL:P(159),lidR:P(386),eyeL:P(145),eyeR:P(374),nose:P(1),fh:Math.hypot(L[10].x*w-L[152].x*w,L[10].y*h-L[152].y*h),found:true};
+  }
+  const X=f=>f*w,Y=f=>f*h;
+  return{ml:{x:X(.36),y:Y(.745)},mr:{x:X(.64),y:Y(.745)},ul:{x:X(.5),y:Y(.735)},ll:{x:X(.5),y:Y(.785)},bil:{x:X(.42),y:Y(.35)},bir:{x:X(.58),y:Y(.35)},bol:{x:X(.22),y:Y(.37)},bor:{x:X(.78),y:Y(.37)},
+    lidL:{x:X(.34),y:Y(.415)},lidR:{x:X(.66),y:Y(.415)},eyeL:{x:X(.34),y:Y(.465)},eyeR:{x:X(.66),y:Y(.465)},nose:{x:X(.5),y:Y(.6)},fh:Y(.82),found:false};
+}
+async function makeSad(src){
+  const w=src.naturalWidth||src.width,h=src.naturalHeight||src.height;
+  const k=await sadKeys(src,w,h),F=k.fh,sg=F*.07,s2=2*sg*sg;
+  const ctrl=[[k.ml,F*.018,F*.075],[k.mr,-F*.018,F*.075],[k.ul,0,F*.018],[k.ll,0,-F*.016],[k.bil,F*.008,-F*.055],[k.bir,-F*.008,-F*.055],[k.bol,0,F*.025],[k.bor,0,F*.025],[k.lidL,0,F*.016],[k.lidR,0,F*.016]];
+  const disp=(x,y)=>{let dx=0,dy=0;for(const [c,ux,uy] of ctrl){const e=Math.exp(-((x-c.x)**2+(y-c.y)**2)/s2);dx+=ux*e;dy+=uy*e}return[dx,dy]};
+  const out=document.createElement('canvas');out.width=w;out.height=h;const g=out.getContext('2d');
+  g.filter='saturate(.82) brightness(.97)';g.drawImage(src,0,0,w,h);
+  const GX=18,GY=20,V=[];
+  for(let j=0;j<=GY;j++)for(let i=0;i<=GX;i++){const x=i/GX*w,y=j/GY*h,[dx,dy]=disp(x,y);V.push({u:x,v:y,x:x+dx,y:y+dy})}
+  const tri=(A,B,C)=>{
+    const den=A.u*(B.v-C.v)+B.u*(C.v-A.v)+C.u*(A.v-B.v);if(Math.abs(den)<1e-6)return;
+    const ma=(A.x*(B.v-C.v)+B.x*(C.v-A.v)+C.x*(A.v-B.v))/den,mc=(A.x*(C.u-B.u)+B.x*(A.u-C.u)+C.x*(B.u-A.u))/den,me=(A.x*(B.u*C.v-C.u*B.v)+B.x*(C.u*A.v-A.u*C.v)+C.x*(A.u*B.v-B.u*A.v))/den;
+    const mb=(A.y*(B.v-C.v)+B.y*(C.v-A.v)+C.y*(A.v-B.v))/den,md=(A.y*(C.u-B.u)+B.y*(A.u-C.u)+C.y*(B.u-A.u))/den,mf=(A.y*(B.u*C.v-C.u*B.v)+B.y*(C.u*A.v-A.u*C.v)+C.y*(A.u*B.v-B.u*A.v))/den;
+    const cx=(A.x+B.x+C.x)/3,cy=(A.y+B.y+C.y)/3,ex=(p)=>{const dx=p.x-cx,dy=p.y-cy,d=Math.hypot(dx,dy)||1;return[p.x+dx/d*.6,p.y+dy/d*.6]};
+    g.save();g.beginPath();g.moveTo(...ex(A));g.lineTo(...ex(B));g.lineTo(...ex(C));g.closePath();g.clip();g.transform(ma,mb,mc,md,me,mf);g.drawImage(src,0,0,w,h);g.restore();
+  };
+  for(let j=0;j<GY;j++)for(let i=0;i<GX;i++){const a=V[j*(GX+1)+i],b=V[j*(GX+1)+i+1],c=V[(j+1)*(GX+1)+i],d=V[(j+1)*(GX+1)+i+1];tri(a,b,c);tri(b,d,c)}
+  g.filter='none';
+  const glow=(x,y,r,col)=>{const gr=g.createRadialGradient(x,y,0,x,y,r);gr.addColorStop(0,col);gr.addColorStop(1,'rgba(230,60,60,0)');g.fillStyle=gr;g.beginPath();g.arc(x,y,r,0,TAU);g.fill()};
+  for(const e of [k.eyeL,k.eyeR])glow(e.x,e.y,F*.1,'rgba(225,60,60,.22)');
+  glow(k.nose.x,k.nose.y,F*.075,'rgba(225,60,60,.26)');
+  const lw=Math.max(2,F*.03);
+  for(const [e,sd] of [[k.eyeL,-1],[k.eyeR,1]]){
+    g.fillStyle='rgba(190,230,255,.55)';g.beginPath();g.ellipse(e.x,e.y+F*.006,F*.06,F*.014,0,0,TAU);g.fill();
+    const x0=e.x-sd*F*.025,y0=e.y+F*.01,L=F*.3;
+    g.lineCap='round';g.strokeStyle='rgba(170,220,255,.3)';g.lineWidth=lw*1.1;g.beginPath();g.moveTo(x0,y0);
+    for(let q=1;q<=10;q++){const f=q/10;g.lineTo(x0+Math.sin(f*5+sd)*F*.012-sd*f*F*.02,y0+f*L)}g.stroke();
+    g.strokeStyle='rgba(255,255,255,.55)';g.lineWidth=lw*.28;g.beginPath();g.moveTo(x0-lw*.2,y0+F*.02);
+    for(let q=2;q<=9;q++){const f=q/10;g.lineTo(x0-lw*.2+Math.sin(f*5+sd)*F*.012-sd*f*F*.02,y0+f*L)}g.stroke();
+    const dx=x0-sd*F*.02,dy=y0+L+F*.02;g.fillStyle='rgba(160,215,255,.8)';g.beginPath();g.moveTo(dx,dy-F*.03);g.quadraticCurveTo(dx+F*.022,dy+F*.004,dx,dy+F*.016);g.quadraticCurveTo(dx-F*.022,dy+F*.004,dx,dy-F*.03);g.fill();
+    g.fillStyle='rgba(255,255,255,.8)';g.beginPath();g.arc(dx-F*.006,dy-F*.004,F*.005,0,TAU);g.fill();
+  }
+  if(src.width&&src.getContext){const m=document.createElement('canvas');m.width=w;m.height=h;const mg=m.getContext('2d');mg.drawImage(src,0,0);mg.globalCompositeOperation='source-in';mg.drawImage(out,0,0);return{c:m,found:k.found}}
+  return{c:out,found:k.found};
+}
+let sadBusy=0;
+function autoSad(quiet){
+  if(!faceImg)return Promise.resolve();
+  const my=++sadBusy;if(!quiet)toast('Ağlayan yüz hazırlanıyor…');
+  return makeSad(faceImg).then(r=>{
+    if(my!==sadBusy)return;
+    faceHurt=r.c;faceSrc.b=null;faceSrc.bAuto=true;saveFaces();drawThumbs();
+    if(!quiet)toast(r.found?'Ağlayan yüz hazır: kaşları, ağzı ve gözyaşlarını yüzüne göre ayarladım.':'Ağlayan yüz hazır. Yüz noktalarını bulamadım, tahmini yerleştirdim.');
+  }).catch(()=>{if(!quiet)toast('Ağlayan yüz hazırlanamadı.')});
+}
 function saveFaces(){try{localStorage.setItem('pofuduk-yuz',JSON.stringify(faceSrc))}catch(e){}}
 function useSrc(slot,src){
   if(!src){if(slot==='a')faceImg=null;else faceHurt=null;faceSrc[slot]=null;drawThumbs();return Promise.resolve()}
@@ -1893,12 +1960,17 @@ function processFile(file,slot){
 const crop={img:null,slot:'a',cx:0,cy:0,base:1,z:0,rot:0,touched:false};
 const CC=$('cc'),cg=CC.getContext('2d'),CW=600,ORX=210,ORY=247;
 const cropScale=()=>crop.base*Math.exp(crop.z);
+window.__crop=crop;window.__drawCrop=()=>drawCrop();
 function drawCrop(){
   if(!crop.img)return;
   cg.setTransform(1,0,0,1,0,0);cg.fillStyle='#e9e1ef';cg.fillRect(0,0,CW,CW);
   cg.save();cg.translate(CW/2,CW/2);cg.rotate(crop.rot);const s=cropScale();cg.scale(s,s);cg.translate(-crop.cx,-crop.cy);cg.drawImage(crop.img,0,0);cg.restore();
   cg.fillStyle='rgba(30,16,40,.62)';cg.beginPath();cg.rect(0,0,CW,CW);cg.ellipse(CW/2,CW/2,ORX,ORY,0,0,TAU);cg.fill('evenodd');
   cg.lineWidth=5;cg.strokeStyle='#fffaf2';cg.setLineDash([18,12]);cg.beginPath();cg.ellipse(CW/2,CW/2,ORX,ORY,0,0,TAU);cg.stroke();cg.setLineDash([]);
+  const gx=f=>CW/2-ORX+f*2*ORX,gy=f=>CW/2-ORY+f*2*ORY;
+  cg.strokeStyle='rgba(255,250,242,.55)';cg.lineWidth=3;
+  for(const fx of [.34,.66]){cg.beginPath();cg.ellipse(gx(fx),gy(.44),26,15,0,0,TAU);cg.stroke()}
+  cg.beginPath();cg.moveTo(gx(.36),gy(.74));cg.quadraticCurveTo(gx(.5),gy(.78),gx(.64),gy(.74));cg.stroke();
 }
 function autoGuess(img){
   const w=img.naturalWidth||img.width,h=img.naturalHeight||img.height;
@@ -1921,7 +1993,7 @@ function getDetector(){
   })();
   return mpTry;
 }
-const CNOTE='Fotoğrafı parmağınla ya da fareyle sürükle, iki parmakla ya da tekerlekle yakınlaştır. Yüzü ovalin içine oturt; dışı şeffaf kalır.';
+const CNOTE='Fotoğrafı parmağınla ya da fareyle sürükle, iki parmakla ya da tekerlekle yakınlaştır. Gözleri ve ağzı silik işaretlere getir; ovalin dışı şeffaf kalır.';
 function cnote(t){$('cnote').textContent=t}
 function detectFace(img){
   cnote('Yüz aranıyor…');
@@ -1983,7 +2055,8 @@ $('cOk').addEventListener('click',()=>{
   const f=120/ORX;g.translate(120,141);g.rotate(crop.rot);const s=cropScale()*f;g.scale(s,s);g.translate(-crop.cx,-crop.cy);g.drawImage(crop.img,0,0);
   const slot=crop.slot,src=o.toDataURL('image/png');
   if(slot==='a')faceImg=o;else faceHurt=o;
-  faceSrc[slot]=src;if(eye.state===1)eye.state=0;saveFaces();drawThumbs();closeCrop();
+  faceSrc[slot]=src;if(slot==='b')faceSrc.bAuto=false;if(eye.state===1)eye.state=0;saveFaces();drawThumbs();closeCrop();
+  if(slot==='a'&&(!faceHurt||faceSrc.bAuto)){autoSad();return}
   toast(slot==='a'?'Normal yüz kaydedildi.':'Üzgün yüz kaydedildi.');pmsg('Tamam! İstersen öbür yüzü de ekle.');
 });
 function openPanel(){drawThumbs();pmsg('Fotoğrafa ya da düğmeye bas. Seçici açılmazsa fotoğrafı kopyalayıp "Buraya yapıştır" kutusuna yapıştır (telefonda kutuya basılı tut, Yapıştır) ya da kutunun üstüne sürükle.');$('panel').hidden=false;$('pClose').focus()}
@@ -1992,6 +2065,7 @@ $('faceBtn').addEventListener('click',openPanel);
 if(!FACE_A)$('pDefault').hidden=true;
 $('pClose').addEventListener('click',closePanel);
 $('panel').addEventListener('pointerdown',e=>{if(e.target===$('panel'))closePanel()});
+$('autoSadBtn').addEventListener('click',()=>{if(!faceImg){pmsg('Önce normal yüzü ekle, ağlayan hâlini ondan hazırlarım.',true);return}autoSad()});
 $('pNone').addEventListener('click',()=>{faceImg=faceHurt=null;faceSrc={a:null,b:null};saveFaces();drawThumbs();toast(TY.name+' kendi yüzüne döndü.')});
 $('pDefault').addEventListener('click',()=>{Promise.all([useSrc('a',FACE_A),useSrc('b',FACE_B)]).then(()=>{try{localStorage.removeItem('pofuduk-yuz')}catch(e){}toast('Örnek yüzler geri geldi.')})});
 for(const [id,slot] of [['fileA','a'],['fileB','b']]){
@@ -2058,7 +2132,7 @@ function shareLink(){
   try{if(window.top===window&&/^https?:$/.test(location.protocol)&&!/claude/.test(location.hostname))base=location.origin+location.pathname}catch(e){}
   const tp=TYKEY!=='pofuduk'?'p='+TYKEY:'';
   if(!faceImg)return tp?base+'#'+tp:base;
-  return base+'#'+(tp?tp+'&':'')+'y='+packFace(faceImg)+(faceHurt?'.'+packFace(faceHurt):'');
+  return base+'#'+(tp?tp+'&':'')+'y='+packFace(faceImg)+(faceHurt&&!faceSrc.bAuto?'.'+packFace(faceHurt):'');
 }
 $('shareBtn').addEventListener('click',async()=>{
   const url=shareLink();
@@ -2080,10 +2154,10 @@ function sharedFaces(){
 }
 (function initFaces(){
   const sh=sharedFaces();
-  if(sh&&sh.a){Promise.all([loadImg(sh.a),sh.b?loadImg(sh.b):null]).then(([a,b])=>{faceImg=a;faceHurt=b;drawThumbs();toast('Sana gönderilen yüzle açıldı. Kendi yüzünü Yüz düğmesinden koyabilirsin.')}).catch(()=>toast('Bağlantıdaki yüz açılamadı.'));return}
+  if(sh&&sh.a){Promise.all([loadImg(sh.a),sh.b?loadImg(sh.b):null]).then(([a,b])=>{faceImg=a;faceHurt=b;drawThumbs();if(!b){faceSrc.bAuto=true;autoSad(true)}toast('Sana gönderilen yüzle açıldı. Kendi yüzünü Yüz düğmesinden koyabilirsin.')}).catch(()=>toast('Bağlantıdaki yüz açılamadı.'));return}
   let saved=null;try{saved=JSON.parse(localStorage.getItem('pofuduk-yuz')||'null')}catch(e){}
   const src=saved&&typeof saved==='object'?saved:{a:FACE_A,b:FACE_B};
-  Promise.all([useSrc('a',src.a),useSrc('b',src.b)]).catch(()=>Promise.all([useSrc('a',FACE_A),useSrc('b',FACE_B)]));
+  Promise.all([useSrc('a',src.a),useSrc('b',src.b)]).then(()=>{faceSrc.bAuto=!!src.bAuto;if(src.bAuto)autoSad(true)}).catch(()=>Promise.all([useSrc('a',FACE_A),useSrc('b',FACE_B)]));
 })();
 
 /* ---------- peluş tipleri ---------- */
